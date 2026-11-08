@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { getApplications } from "../lib/api";
 import RiskChip from "../components/ui/RiskChip";
+import SignOutButton from "../components/ui/SignOutButton.jsx";
 
 const PAGE_SIZES = [10, 25, 50];
 
@@ -205,7 +206,7 @@ export default function Applications() {
         <div className="flex w-full flex-col gap-6">
           <Link
             to="/dashboard"
-            aria-label="CreditLens dashboard"
+            aria-label="CredLens dashboard"
             className="mx-4 flex h-10 w-10 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 text-sky-700 shadow-sm lg:mx-auto"
           >
             <Shield className="h-5 w-5" />
@@ -235,14 +236,7 @@ export default function Applications() {
           </nav>
         </div>
         <div className="flex w-full justify-start px-4 lg:justify-center lg:px-0">
-          <div
-            title="Account"
-            aria-label="Account"
-            className="flex h-9 items-center justify-center gap-3 rounded-full border border-slate-200 bg-slate-100 px-2 text-slate-600 lg:w-9 lg:px-0"
-          >
-            <Shield className="h-4 w-4" />
-            <span className="pr-2 text-sm font-medium lg:hidden">Account</span>
-          </div>
+          <SignOutButton />
         </div>
       </aside>
 
@@ -258,7 +252,7 @@ export default function Applications() {
               <Menu className="h-5 w-5" />
             </button>
             <Link to="/dashboard" className="hidden font-semibold tracking-tight text-slate-900 sm:block">
-              CreditLens
+              CredLens
             </Link>
             <div className="relative hidden w-full max-w-md sm:block">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />

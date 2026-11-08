@@ -1,4 +1,5 @@
 import ShapFactors from "../components/analytics/ShapFactors";
+import SignOutButton from "../components/ui/SignOutButton.jsx";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -17,7 +18,6 @@ import {
   Search,
   Shield,
   SlidersHorizontal,
-  UserRound,
 } from "lucide-react";
 
 const navigation = [
@@ -114,7 +114,7 @@ export default function ModelAnalytics() {
         <div className="flex w-full flex-col gap-6">
           <Link
             to="/dashboard"
-            aria-label="CreditLens dashboard"
+            aria-label="CredLens dashboard"
             className="mx-4 flex h-10 w-10 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 text-sky-700 shadow-sm lg:mx-auto"
           >
             <Shield className="h-5 w-5" />
@@ -144,15 +144,7 @@ export default function ModelAnalytics() {
           </nav>
         </div>
         <div className="flex w-full justify-start px-4 lg:justify-center lg:px-0">
-          <button
-            type="button"
-            title="Account"
-            aria-label="Account"
-            className="flex h-9 items-center justify-center gap-3 rounded-full border border-slate-200 bg-slate-100 px-2 text-slate-600 lg:w-9 lg:px-0"
-          >
-            <UserRound className="h-5 w-5" />
-            <span className="pr-2 text-sm font-medium lg:hidden">Account</span>
-          </button>
+          <SignOutButton />
         </div>
       </aside>
 

@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, CircleHelp } from "lucide-react";
 import { assessLoan } from "../../lib/api.js";
+import { getAccessToken } from "../../lib/auth.js";
 import { landingCopy } from "../../data/landing.js";
 import Button from "../ui/Button.jsx";
 import RiskChip from "../ui/RiskChip.jsx";
@@ -172,7 +173,14 @@ export default function LiveDemo() {
               </div>
             </form>
 
-            {error && <p className="demo-error" role="alert">{error}</p>}
+            {error && (
+              <p className="demo-error" role="alert">
+                {error}
+                {!getAccessToken() && (
+                  <> <Link to="/login">{landingCopy.auth.signInLink}</Link> to continue.</>
+                )}
+              </p>
+            )}
             {loading && <LoadingResult label={demo.loadingLabel} />}
             {result && !loading && (
               <div className="demo-results" aria-live="polite">

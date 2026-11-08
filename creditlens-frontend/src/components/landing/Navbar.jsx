@@ -2,9 +2,12 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, ShieldCheck, X } from "lucide-react";
 import { landingCopy } from "../../data/landing.js";
+import useAuth from "../../hooks/useAuth.js";
+import { clearAccessToken } from "../../lib/auth.js";
 import Button from "../ui/Button.jsx";
 
 export default function Navbar() {
+  const isAuthenticated = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -24,6 +27,11 @@ export default function Navbar() {
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [menuOpen]);
 
+  const handleSignOut = () => {
+    clearAccessToken();
+    setMenuOpen(false);
+  };
+
   return (
     <>
       <header className={`site-header${scrolled ? " is-scrolled" : ""}`}>
@@ -40,14 +48,28 @@ export default function Navbar() {
             {landingCopy.navigation.map((item) => (
               <a key={item.label} href={item.target} onClick={() => setMenuOpen(false)}>{item.label}</a>
             ))}
-            <Link className="mobile-nav-link" to="/dashboard" onClick={() => setMenuOpen(false)}>{landingCopy.dashboard}</Link>
-            <Link className="mobile-nav-link" to="/login" onClick={() => setMenuOpen(false)}>{landingCopy.signIn}</Link>
+            {isAuthenticated ? (
+              <>
+                <Link className="mobile-nav-link" to="/dashboard" onClick={() => setMenuOpen(false)}>{landingCopy.dashboard}</Link>
+                <Link className="mobile-nav-link" to="/login" onClick={handleSignOut}>{landingCopy.signOut}</Link>
+              </>
+            ) : (
+              <Link className="mobile-nav-link" to="/login" onClick={() => setMenuOpen(false)}>{landingCopy.signIn}</Link>
+            )}
           </div>
 
           <div className="nav-actions">
-            <Link className="nav-signin" to="/dashboard">{landingCopy.dashboard}</Link>
-            <Link className="nav-signin" to="/login">{landingCopy.signIn}</Link>
-            <Button className="nav-cta" to="/register">{landingCopy.getStarted}</Button>
+            {isAuthenticated ? (
+              <>
+                <Link className="nav-signin" to="/dashboard">{landingCopy.dashboard}</Link>
+                <Link className="nav-signin" to="/login" onClick={handleSignOut}>{landingCopy.signOut}</Link>
+              </>
+            ) : (
+              <>
+                <Link className="nav-signin" to="/login">{landingCopy.signIn}</Link>
+                <Button className="nav-cta" to="/register">{landingCopy.getStarted}</Button>
+              </>
+            )}
           </div>
 
           <button

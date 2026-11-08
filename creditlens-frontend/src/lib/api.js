@@ -1,11 +1,19 @@
 import { landingCopy } from "../data/landing.js";
+import { clearAccessToken, getAccessToken } from "./auth.js";
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/+$/, "");
 
-async function request(path, options, fallbackMessage) {
+async function request(path, options, fallbackMessage, requiresAuth = true) {
+  const headers = new Headers(options?.headers);
+  const token = requiresAuth ? getAccessToken() : null;
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
   let response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, options);
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+    });
   } catch (error) {
     if (error instanceof TypeError) throw new Error(fallbackMessage, { cause: error });
     throw error;
@@ -20,6 +28,8 @@ async function request(path, options, fallbackMessage) {
   }
 
   if (!response.ok) {
+    if (requiresAuth && response.status === 401) clearAccessToken();
+
     const detail = body && typeof body === "object" ? body.detail || body.message : body;
     const message = Array.isArray(detail)
       ? detail.map((item) => item.msg || JSON.stringify(item)).join("; ")
@@ -43,7 +53,15 @@ export function loginUser(credentials) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),
-  }, landingCopy.auth.authenticationError);
+  }, landingCopy.auth.authenticationError, false);
+}
+
+export function registerUser(credentials) {
+  return request("/api/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(credentials),
+  }, landingCopy.auth.registrationError, false);
 }
 
 export const getApplications = (params) => {

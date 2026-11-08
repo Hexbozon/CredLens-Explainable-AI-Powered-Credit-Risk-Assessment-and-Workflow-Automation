@@ -14,7 +14,6 @@ import {
   Shield,
   ChevronDown,
   Menu,
-  BadgeCheck,
   ChartColumn,
   RefreshCw,
   Download,
@@ -35,6 +34,7 @@ import {
 
 import useDashboard from "../hooks/useDashboard";
 import RiskChip from "../components/ui/RiskChip";
+import SignOutButton from "../components/ui/SignOutButton.jsx";
 
 const money = (value) =>
   new Intl.NumberFormat("en-US", {
@@ -221,15 +221,7 @@ export default function Dashboard() {
         </div>
 
         <div className="flex w-full justify-start px-4 lg:justify-center lg:px-0">
-          <button
-            type="button"
-            title="Account"
-            aria-label="Account"
-            className="flex h-9 items-center justify-center gap-3 rounded-full border border-slate-200 bg-slate-100 px-2 text-slate-600 transition-colors hover:bg-slate-200 hover:text-slate-900 lg:w-9 lg:px-0"
-          >
-            <BadgeCheck className="w-5 h-5" />
-            <span className="pr-2 text-sm font-medium lg:hidden">Account</span>
-          </button>
+          <SignOutButton />
         </div>
       </aside>
 
