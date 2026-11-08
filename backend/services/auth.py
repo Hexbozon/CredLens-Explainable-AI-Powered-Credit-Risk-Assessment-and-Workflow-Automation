@@ -1,7 +1,9 @@
 
-from psycopg.errors import UniqueViolation
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
-from utils.database import get_connection
+from database_models import User
 from utils.security import (
     hash_password,
     verify_password,
@@ -21,88 +23,85 @@ class InvalidCredentials(AuthError):
     """Raised when login credentials are invalid."""
 
 
-def register_user(email: str, password: str) -> dict:
+def register_user(
+    email: str,
+    password: str,
+    db: Session,
+) -> dict:
     """
-    Register a new user.
+    Register a user using SQLAlchemy.
 
     Stores a password hash, never the plaintext password.
-    Returns the public user details and an access token.
+    Returns public user details and an access token.
     """
     normalized_email = email.strip().lower()
     password_hash = hash_password(password)
 
+    existing_user = db.scalar(
+        select(User).where(User.email == normalized_email)
+    )
+
+    if existing_user:
+        raise EmailAlreadyRegistered(
+            "An account with this email already exists."
+        )
+
+    user = User(
+        email=normalized_email,
+        password_hash=password_hash,
+    )
+
     try:
-        with get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO users (email, password_hash)
-                    VALUES (%s, %s)
-                    RETURNING id, email, created_at
-                    """,
-                    (normalized_email, password_hash),
-                )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
 
-                user = cur.fetchone()
-
-                if not user:
-                    raise AuthError("Could not create user.")
-
-                user_id, user_email, created_at = user
-
-    except UniqueViolation as exc:
+    except IntegrityError as exc:
+        db.rollback()
         raise EmailAlreadyRegistered(
             "An account with this email already exists."
         ) from exc
 
-    token = create_access_token(user_id)
+    token = create_access_token(user.id)
 
     return {
         "user": {
-            "id": user_id,
-            "email": user_email,
-            "created_at": created_at,
+            "id": user.id,
+            "email": user.email,
+            "created_at": user.created_at,
         },
         "access_token": token,
         "token_type": "bearer",
     }
 
 
-def authenticate_user(email: str, password: str) -> dict:
-    """
-    Verify login credentials and issue a JWT.
-    """
+def authenticate_user(
+    email: str,
+    password: str,
+    db: Session,
+) -> dict:
+    """Verify login credentials and issue a JWT."""
+
     normalized_email = email.strip().lower()
 
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT id, email, password_hash, created_at
-                FROM users
-                WHERE email = %s
-                """,
-                (normalized_email,),
-            )
-
-            user = cur.fetchone()
+    user = db.scalar(
+        select(User).where(User.email == normalized_email)
+    )
 
     # Use the same error for unknown email and incorrect password.
-    if not user:
+    if user is None or not verify_password(
+        password,
+        user.password_hash,
+    ):
         raise InvalidCredentials("Invalid email or password.")
 
-    user_id, user_email, stored_hash, created_at = user
-
-    if not verify_password(password, stored_hash):
-        raise InvalidCredentials("Invalid email or password.")
-
-    token = create_access_token(user_id)
+    token = create_access_token(user.id)
 
     return {
         "user": {
-            "id": user_id,
-            "email": user_email,
-            "created_at": created_at,
+            "id": user.id,
+            "email": user.email,
+            "created_at": user.created_at,
         },
         "access_token": token,
         "token_type": "bearer",

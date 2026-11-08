@@ -48,8 +48,8 @@ class CreditRiskInput(BaseModel):
         description="Applicant's total annual income before taxes."
     )
 
-    employment_length: int = Field(
-        ...,
+    employment_length: int | None = Field(
+        default=None,
         ge=0,
         le=60,
         description="Applicant's employment length in years. Enter 0 for less than one year."

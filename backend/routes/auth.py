@@ -1,5 +1,8 @@
-from fastapi import APIRouter, HTTPException
-import psycopg
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from schemas.auth import (
     UserRegister,
@@ -7,7 +10,8 @@ from schemas.auth import (
     UserResponse,
     TokenResponse,
 )
-from utils.database import get_connection
+from utils.database import get_db
+from database_models import User
 from utils.security import (
     hash_password,
     verify_password,
@@ -21,70 +25,69 @@ router = APIRouter(
 
 
 @router.post("/register", response_model=UserResponse)
-def register_user(data: UserRegister):
-    try:
-        with get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO users (email, password_hash)
-                    VALUES (%s, %s)
-                    RETURNING id, email
-                    """,
-                    (
-                        str(data.email).lower(),
-                        hash_password(data.password)
-                    )
-                )
+def register_user(
+    data: UserRegister,
+    db: Session = Depends(get_db),
+):
+    email = str(data.email).lower()
 
-                user = cur.fetchone()
+    # Check whether this email is already registered.
+    existing_user = db.scalar(
+        select(User).where(User.email == email)
+    )
 
-        if user is None:
-            raise HTTPException(
-                status_code=500,
-                detail="User registration failed."
-            )
-
-        return UserResponse(
-            id=user[0],
-            email=user[1]
-        )
-
-    except psycopg.errors.UniqueViolation:
+    if existing_user:
         raise HTTPException(
             status_code=409,
             detail="An account with this email already exists."
         )
 
+    user = User(
+        email=email,
+        password_hash=hash_password(data.password),
+    )
+
+    try:
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="An account with this email already exists."
+        )
+
+    return UserResponse(
+        id=user.id,
+        email=user.email,
+    )
+
 
 @router.post("/login", response_model=TokenResponse)
-def login_user(data: UserLogin):
+def login_user(
+    data: UserLogin,
+    db: Session = Depends(get_db),
+):
+    email = str(data.email).lower()
 
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT id, email, password_hash
-                FROM users
-                WHERE email = %s
-                """,
-                (str(data.email).lower(),)
-            )
-
-            user = cur.fetchone()
+    user = db.scalar(
+        select(User).where(User.email == email)
+    )
 
     if user is None or not verify_password(
         data.password,
-        user[2]
+        user.password_hash,
     ):
         raise HTTPException(
             status_code=401,
             detail="Invalid email or password."
         )
 
-    access_token = create_access_token(user[0])
+    access_token = create_access_token(user.id)
 
     return TokenResponse(
         access_token=access_token,
-        token_type="bearer"
+        token_type="bearer",
     )
